@@ -31,10 +31,16 @@ prompt_session = PromptSession(
 # 1. Configure OpenAI client and load environment variables
 # --------------------------------------------------------------------------------
 load_dotenv()  # Load environment variables from .env file
+
+# Get API key and optional custom endpoint and model from environment variables
+api_key = os.getenv("DEEPSEEK_API_KEY")
+base_url = os.getenv("CUSTOM_API_ENDPOINT", "https://api.deepseek.com")
+default_model = os.getenv("CUSTOM_MODEL", "deepseek-reasoner")
+
 client = OpenAI(
-    api_key=os.getenv("DEEPSEEK_API_KEY"),
-    base_url="https://api.deepseek.com"
-)  # Configure for DeepSeek API
+    api_key=api_key,
+    base_url=base_url
+)  # Configure for DeepSeek API or custom endpoint
 
 # --------------------------------------------------------------------------------
 # 2. Define our schema using Pydantic for type safety
@@ -586,7 +592,7 @@ def stream_openai_response(user_message: str):
     # Remove the old file guessing logic since we'll use function calls
     try:
         stream = client.chat.completions.create(
-            model="deepseek-reasoner",
+            model=default_model,
             messages=conversation_history,
             tools=tools,
             max_completion_tokens=64000,
@@ -695,7 +701,7 @@ def stream_openai_response(user_message: str):
                 console.print("\n[bold bright_blue]🔄 Processing results...[/bold bright_blue]")
                 
                 follow_up_stream = client.chat.completions.create(
-                    model="deepseek-reasoner",
+                    model=default_model,
                     messages=conversation_history,
                     tools=tools,
                     max_completion_tokens=64000,
@@ -734,7 +740,7 @@ def stream_openai_response(user_message: str):
         return {"success": True}
 
     except Exception as e:
-        error_msg = f"DeepSeek API error: {str(e)}"
+        error_msg = f"API error: {str(e)}"
         console.print(f"\n[bold red]❌ {error_msg}[/bold red]")
         return {"error": error_msg}
 
@@ -744,8 +750,9 @@ def stream_openai_response(user_message: str):
 
 def main():
     # Create a beautiful gradient-style welcome panel
-    welcome_text = """[bold bright_blue]🐋 DeepSeek Engineer[/bold bright_blue] [bright_cyan]with Function Calling[/bright_cyan]
-[dim blue]Powered by DeepSeek-R1 with Chain-of-Thought Reasoning[/dim blue]"""
+    welcome_text = f"""[bold bright_blue]🐋 DeepSeek Engineer[/bold bright_blue] [bright_cyan]with Function Calling[/bright_cyan]
+[dim blue]Powered by {default_model}[/dim blue]
+[dim]Using API endpoint: {base_url}[/dim]"""
     
     console.print(Panel.fit(
         welcome_text,
